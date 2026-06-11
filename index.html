@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SASO Live TV</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest">
+function enablePiP(){
+const video=document.getElementById('video-player');
+if(document.pictureInPictureEnabled && video){
+video.requestPictureInPicture();
+}
+}
+
+// PWA Registration
+if('serviceWorker' in navigator){
+window.addEventListener('load',()=>{
+navigator.serviceWorker.register('sw.js').catch(()=>{});
+});
+}
+
+</script>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Poppins',sans-serif;
+}
+
+body{
+    background:#0b1220;
+    color:white;
+}
+
+header{
+    background:#111827;
+    padding:15px 25px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    position:sticky;
+    top:0;
+    z-index:1000;
+}
+
+.logo h1{
+    color:#00d4ff;
+    font-size:28px;
+}
+
+.logo p{
+    font-size:12px;
+    color:#94a3b8;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.live-badge{
+    background:red;
+    padding:6px 12px;
+    border-radius:30px;
+    font-size:13px;
+    font-weight:bold;
+    white-space: nowrap;
+}
+
+.search-box{
+    width:280px;
+    padding:10px 15px;
+    border:none;
+    border-radius:30px;
+    outline:none;
+    background: #1f2937;
+    color: white;
+}
+
+.hero{
+    padding:20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.player-box{
+    background:#111827;
+    border-radius:20px;
+    overflow:hidden;
+    box-shadow:0 0 20px rgba(0,212,255,.15);
+    margin-bottom: 20px;
+}
+
+video {
+    width: 100%;
+    height: 450px;
+    background: #000;
+    display: none; /* Hidden until a channel is selected */
+}
+
+.player-placeholder{
+    height:420px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    flex-direction:column;
+    background:linear-gradient(135deg,#0f172a,#1e293b);
+    text-align: center;
+    padding: 20px;
+}
+
+.player-placeholder h2{
+    color:#00d4ff;
+    margin-bottom:10px;
+}
+
+.player-placeholder p{
+    color:#cbd5e1;
+}
+
+/* Category Tabs */
+.category-tabs {
+    display: flex;
+    gap: 10px;
+    margin: 20px 0;
+    overflow-x: auto;
+    padding-bottom: 5px;
+}
+
+.tab-btn {
+    background: #131c31;
+    color: white;
+    border: 1px solid #1f2937;
+    padding: 10px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: 0.3s;
+    white-space: nowrap;
+}
+
+.tab-btn.active, .tab-btn:hover {
+    background: #00d4ff;
+    color: #0b1220;
+    border-color: #00d4ff;
+}
+
+.section-title{
+    margin:20px 0 15px;
+    font-size:22px;
+    color:#00d4ff;
+}
+
+.channel-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+    gap:15px;
+}
+
+.channel-card{
+    background:#131c31;
+    border-radius:16px;
+    padding:15px;
+    transition:.3s;
+    cursor:pointer;
+    text-align:center;
+    border: 1px solid transparent;
+}
+
+.channel-card:hover, .channel-card.active-channel {
+    transform:translateY(-5px);
+    box-shadow:0 0 20px rgba(0,212,255,.2);
+    border-color: #00d4ff;
+}
+
+.channel-logo{
+    width:80px;
+    height:80px;
+    border-radius:50%;
+    background:#1e293b;
+    margin:0 auto 10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:28px;
+    overflow: hidden;
+}
+
+.channel-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.channel-name{
+    font-weight:600;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.channel-status{
+    color:#22c55e;
+    font-size:12px;
+    margin-top:5px;
+}
+
+/* Loading Spinner */
+.loader {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #00d4ff;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+footer{
+    background:#111827;
+    padding:30px;
+    text-align:center;
+    margin-top:40px;
+    border-top:1px solid #1f2937;
+}
+
+footer p{
+    margin:6px 0;
+    color:#cbd5e1;
+}
+
+@media(max-width:768px){
+    header{
+        flex-direction: column;
+        align-items: flex-start;
+        gap:15px;
+    }
+
+    .header-right {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .search-box{
+        width:70%;
+    }
+
+    video {
+        height: 240px;
+    }
+
+    .player-placeholder{
+        height:240px;
+    }
+}
+
+.saso-logo{
+font-family:'Orbitron',sans-serif;
+font-size:34px;
+font-weight:800;
+letter-spacing:3px;
+background:linear-gradient(90deg,#00d4ff,#ffffff,#00d4ff);
+-webkit-background-clip:text;
+-webkit-text-fill-color:transparent;
+text-shadow:0 0 15px rgba(0,212,255,.5);
+animation: glow 2s infinite alternate;
+}
+@keyframes glow{
+from{filter:brightness(1);}
+to{filter:brightness(1.3);}
+}
+.news-ticker{
+background:#00d4ff;
+color:#000;
+font-weight:600;
+padding:10px;
+font-size:14px;
+overflow:hidden;
+}
+.player-box{position:relative;}
+.watermark{
+position:absolute;
+top:15px;
+right:15px;
+z-index:999;
+font-family:'Orbitron',sans-serif;
+font-size:20px;
+font-weight:800;
+color:rgba(255,255,255,.7);
+pointer-events:none;
+text-shadow:0 0 10px #000;
+}
+
+
+.glass-player{
+backdrop-filter:blur(15px);
+background:rgba(255,255,255,.05);
+border:1px solid rgba(255,255,255,.1);
+}
+.floating-watermark{
+position:absolute;
+bottom:15px;
+right:15px;
+opacity:.35;
+z-index:999;
+pointer-events:none;
+}
+.floating-watermark img{
+width:120px;
+}
+.skeleton{
+height:120px;
+border-radius:15px;
+background:linear-gradient(90deg,#1e293b,#334155,#1e293b);
+background-size:200% 100%;
+animation:skeleton 1.5s infinite;
+}
+@keyframes skeleton{
+0%{background-position:200% 0}
+100%{background-position:-200% 0}
+}
+.pip-btn{
+position:absolute;
+left:15px;
+top:15px;
+z-index:999;
+background:#00d4ff;
+border:none;
+padding:8px 12px;
+border-radius:8px;
+cursor:pointer;
+font-weight:bold;
+}
+
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<header>
+    <div class="logo">
+        <h1 class="saso-logo">SASO TV</h1>
+        <p>SASO Prime Group-এর একটি প্রতিষ্ঠান</p>
+    </div>
+
+    <div class="header-right">
+        <div class="live-badge">🔴 LIVE</div>
+        <input type="text" class="search-box" id="search" placeholder="Search Channel...">
+    </div>
+</header>
+<div class="news-ticker">
+<marquee scrollamount="5">📢 Welcome to SASO TV • Watch Live Bangla, Sports & FIFA Channels • Developed by Imdadul Sheikh • 🔴 বিশেষ সংবাদ: SASO PRIME এর স্বত্বাধিকার সাইফুল ইসলাম আগামীকাল ১২/০৬/২০২৬ ইং তারিখ রোজ: শুক্রবার সৌদি এয়ারপোর্টে এসে পৌঁছাবে।</marquee>
+</div>
+
+<section class="hero">
+    
+<div class="player-box glass-player">
+<button class="pip-btn" onclick="enablePiP()">PiP</button>
+<div class="floating-watermark">
+<img src="https://dummyimage.com/300x120/00d4ff/000000&text=SASO+TV" alt="SASO TV">
+</div>
+<div class="watermark">SASO TV</div>
+
+        <div class="player-placeholder" id="placeholder">
+            <h2>▶ SASO Live TV</h2>
+            <p>Select a channel from below to start watching</p>
+        </div>
+        <video id="video-player" controls autoplay></video>
+    </div>
+
+    <div class="category-tabs">
+        <button class="tab-btn active" onclick="filterCategory('all')">All Channels</button>
+        <button class="tab-btn" onclick="filterCategory('Bangla')">Bangla</button>
+        <button class="tab-btn" onclick="filterCategory('Sports')">Sports</button>
+        <button class="tab-btn" onclick="filterCategory('FIFA')">FIFA</button>
+    </div>
+
+    <h2 class="section-title" id="grid-title">All Channels</h2>
+
+    <div id="loader" class="loader"></div>
+
+    <div class="channel-grid" id="channels">
+        </div>
+</section>
+
+<footer>
+    <h3>SASO Live TV</h3>
+    <p>SASO Prime Group-এর একটি প্রতিষ্ঠান</p>
+    <p>Website Design & Development: ইমদাদুল শেখ</p>
+    <p>Watch the World Live</p>
+    <p>© 2026 SASO Live TV. All Rights Reserved.</p>
+</footer>
+
+<script>
+// API Playlists (Using your JSON links)
+const playlists = {
+    Bangla: "https://raw.githubusercontent.com/SHAJON-404/iptv/refs/heads/main/app/data/bangla.json",
+    Sports: "https://raw.githubusercontent.com/SHAJON-404/iptv/refs/heads/main/app/data/sports.json",
+    FIFA: "https://raw.githubusercontent.com/SHAJON-404/iptv/refs/heads/main/app/data/fifa.json"
+};
+
+let allChannels = [];
+let currentCategory = 'all';
+
+const channelsGrid = document.getElementById("channels");
+const loader = document.getElementById("loader");
+const videoPlayer = document.getElementById("video-player");
+const placeholder = document.getElementById("placeholder");
+const searchInput = document.getElementById("search");
+const gridTitle = document.getElementById("grid-title");
+
+// Fetch data from all JSON links
+async function loadAllChannels() {
+    try {
+        loader.style.display = "block";
+        
+        // Fetch all categories simultaneously
+        const [banglaRes, sportsRes, fifaRes] = await Promise.all([
+            fetch(playlists.Bangla).then(res => res.json()),
+            fetch(playlists.Sports).then(res => res.json()),
+            fetch(playlists.FIFA).then(res => res.json())
+        ]);
+
+        // Standardize data format and merge into one array
+        // Note: Formatting is adjusted to match standard JSON structures inside IPTV playlists
+        if(banglaRes.channels) allChannels.push(...banglaRes.channels.map(c => ({...c, category: 'Bangla'})));
+        else if(Array.isArray(banglaRes)) allChannels.push(...banglaRes.map(c => ({...c, category: 'Bangla'})));
+
+        if(sportsRes.channels) allChannels.push(...sportsRes.channels.map(c => ({...c, category: 'Sports'})));
+        else if(Array.isArray(sportsRes)) allChannels.push(...sportsRes.map(c => ({...c, category: 'Sports'})));
+
+        if(fifaRes.channels) allChannels.push(...fifaRes.channels.map(c => ({...c, category: 'FIFA'})));
+        else if(Array.isArray(fifaRes)) allChannels.push(...fifaRes.map(c => ({...c, category: 'FIFA'})));
+
+        loader.style.display = "none";
+        renderChannels(allChannels);
+
+    } catch (error) {
+        console.error("Error loading channels:", error);
+        loader.innerHTML = "<p style='color:red;'>Failed to load channels. Please try again later.</p>";
+    }
+}
+
+// Render channel cards to HTML
+function renderChannels(channelsToRender) {
+    channelsGrid.innerHTML = "";
+    
+    if(channelsToRender.length === 0) {
+        channelsGrid.innerHTML = "<p style='grid-column: 1/-1; text-align:center; color:#94a3b8;'>No channels found.</p>";
+        return;
+    }
+
+    channelsToRender.forEach(channel => {
+        // Handle variations in JSON object properties (e.g., name vs title, logo vs image)
+        const name = channel.name || channel.title || "Unknown Channel";
+        const logo = channel.logo || channel.image || "📺";
+        const streamUrl = channel.url || channel.stream_url || channel.link;
+
+        const card = document.createElement("div");
+        card.className = "channel-card";
+        
+        // Setup inner HTML for each card
+        let logoHTML = `<div class="channel-logo">${logo}</div>`;
+        if(logo.startsWith('http')) {
+            logoHTML = `<div class="channel-logo"><img src="${logo}" alt="${name}" onerror="this.onerror=null; this.parentNode.innerHTML='📺';"></div>`;
+        }
+
+        card.innerHTML = `
+            ${logoHTML}
+            <div class="channel-name" title="${name}">${name}</div>
+            <div class="channel-status">● LIVE</div>
+        `;
+
+        // Click event to play stream
+        card.addEventListener("click", () => {
+            // Remove active style from other cards
+            document.querySelectorAll('.channel-card').forEach(c => c.classList.remove('active-channel'));
+            card.classList.add('active-channel');
+            
+            playStream(streamUrl, name);
+        });
+
+        channelsGrid.appendChild(card);
+    });
+}
+
+// Play Stream using HLS.js or Native Video Player
+function playStream(url, name) {
+    if (!url) {
+        alert("Stream URL not found for this channel.");
+        return;
+    }
+
+    // Hide placeholder and show video player
+    placeholder.style.display = "none";
+    videoPlayer.style.display = "block";
+    
+    // Scroll smoothly to player
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    if (Hls.isSupported()) {
+        const hls = new Hls();
+        hls.loadSource(url);
+        hls.attachMedia(videoPlayer);
+        hls.on(Hls.Events.MANIFEST_PARSED, function() {
+            videoPlayer.play();
+        });
+        hls.on(Hls.Events.ERROR, function (event, data) {
+            if (data.fatal) {
+                console.log("HLS Error encountered, trying native failover...");
+            }
+        });
+    }
+    // For Safari or browsers with native HLS support
+    else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
+        videoPlayer.src = url;
+        videoPlayer.addEventListener('loadedmetadata', function() {
+            videoPlayer.play();
+        });
+    } else {
+        alert("Your browser does not support Live Streaming (HLS). Please try Google Chrome or Firefox.");
+    }
+}
+
+// Filter Channels by Category Tabs
+function filterCategory(category) {
+    currentCategory = category;
+    
+    // Update active tab styling
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+
+    // Title text update
+    gridTitle.innerText = category === 'all' ? "All Channels" : `${category} Channels`;
+
+    filterAndSearchChannels();
+}
+
+// Unified Filter and Search Function
+function filterAndSearchChannels() {
+    let searchValue = searchInput.value.toLowerCase();
+    
+    let filtered = allChannels.filter(channel => {
+        const name = (channel.name || channel.title || "").toLowerCase();
+        const matchesCategory = (currentCategory === 'all' || channel.category === currentCategory);
+        const matchesSearch = name.includes(searchValue);
+        
+        return matchesCategory && matchesSearch;
+    });
+
+    renderChannels(filtered);
+}
+
+// Search Input Listener
+searchInput.addEventListener("keyup", filterAndSearchChannels);
+
+// Initial Load
+window.addEventListener("DOMContentLoaded", loadAllChannels);
+
+function enablePiP(){
+const video=document.getElementById('video-player');
+if(document.pictureInPictureEnabled && video){
+video.requestPictureInPicture();
+}
+}
+
+// PWA Registration
+if('serviceWorker' in navigator){
+window.addEventListener('load',()=>{
+navigator.serviceWorker.register('sw.js').catch(()=>{});
+});
+}
+
+</script>
+
+</body>
+</html>
